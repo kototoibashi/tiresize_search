@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タイヤサイズ計算機</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        input[type="number"] {
+            width: 60px;
+        }
+    </style>
+</head>
+<body>
+    <h1>タイヤサイズ計算機</h1>
+    
+    <div>
+        <h2>ターゲットタイヤサイズ</h2>
+        <label>幅: <input type="number" id="targetWidth" value="235"> mm</label>
+        <label>アスペクト比: <input type="number" id="targetAspectRatio" value="40"> %</label>
+        <label>ホイール径: <input type="number" id="targetWheelDiameter" value="18"> インチ</label>
+    </div>
+
+    <div>
+        <h2>検索範囲</h2>
+        <label>幅の開始: <input type="number" id="widthStart" value="225"> mm</label>
+        <label>幅の終了: <input type="number" id="widthEnd" value="255"> mm</label>
+        <label>幅の増分: <input type="number" id="widthStep" value="10"> mm</label>
+        <br>
+        <label>アスペクト比の開始: <input type="number" id="aspectRatioStart" value="40"> %</label>
+        <label>アスペクト比の終了: <input type="number" id="aspectRatioEnd" value="60"> %</label>
+        <label>アスペクト比の増分: <input type="number" id="aspectRatioStep" value="5"> %</label>
+        <br>
+        <label>ホイール径: <input type="text" id="wheelSizes" value="17,18"> インチ (カンマ区切り)</label>
+    </div>
+
+    <button onclick="calculateTireSizes()">計算</button>
+
+    <div id="result"></div>
+
+    <script>
+        function tireDiameter(width, aspectRatio, wheelDiameter) {
+            return (width * aspectRatio / 100) * 2 + wheelDiameter * 25.4;
+        }
+
+        function findCloseTireSizes(targetDiameter, wheelSizes, widthStart, widthEnd, widthStep, aspectRatioStart, aspectRatioEnd, aspectRatioStep) {
+            const closeSizes = [];
+            for (let width = widthStart; width <= widthEnd; width += widthStep) {
+                for (const wheel of wheelSizes) {
+                    for (let aspectRatio = aspectRatioStart; aspectRatio <= aspectRatioEnd; aspectRatio += aspectRatioStep) {
+                        const diameter = tireDiameter(width, aspectRatio, wheel);
+                        const diameterErrorMm = diameter - targetDiameter;
+                        const speedometerErrorPercent = (diameter / targetDiameter - 1) * 100;
+                        closeSizes.push([`${width}/${aspectRatio}R${wheel}`, diameter, diameterErrorMm, speedometerErrorPercent]);
+                    }
+                }
+            }
+
+            closeSizes.sort((a, b) => Math.abs(a) - Math.abs(b));
+            return closeSizes;
+        }
+
+        function generateTireLink(width, aspectRatio, wheelDiameter) {
+            return `https://www.fujicorporation.com/shop/tire/list?inch=${wheelDiameter}&ttype=1&tc_prf=${aspectRatio}&tc_wi=${width}&season=1`;
+        }
+
+        function calculateTireSizes() {
+            const targetWidth = parseInt(document.getElementById('targetWidth').value);
+            const targetAspectRatio = parseInt(document.getElementById('targetAspectRatio').value);
+            const targetWheelDiameter = parseInt(document.getElementById('targetWheelDiameter').value);
+            const targetDiameter = tireDiameter(targetWidth, targetAspectRatio, targetWheelDiameter);
+
+            const widthStart = parseInt(document.getElementById('widthStart').value);
+            const widthEnd = parseInt(document.getElementById('widthEnd').value);
+            const widthStep = parseInt(document.getElementById('widthStep').value);
+            const aspectRatioStart = parseInt(document.getElementById('aspectRatioStart').value);
+            const aspectRatioEnd = parseInt(document.getElementById('aspectRatioEnd').value);
+            const aspectRatioStep = parseInt(document.getElementById('aspectRatioStep').value);
+            const wheelSizes = document.getElementById('wheelSizes').value.split(',').map(Number);
+
+            const closeTires = findCloseTireSizes(targetDiameter, wheelSizes, widthStart, widthEnd, widthStep, aspectRatioStart, aspectRatioEnd, aspectRatioStep);
+
+            let resultHtml = `<h2>結果</h2>`;
+            resultHtml += `<p>目標タイヤサイズ: ${targetWidth}/${targetAspectRatio}R${targetWheelDiameter}, 直径: ${targetDiameter.toFixed(2)} mm</p>`;
+            resultHtml += `<table><tr><th>サイズ</th><th>直径 (mm)</th><th>直径誤差 (mm)</th><th>スピードメーター誤差 (%)</th></tr>`;
+
+            for (const [size, diameter, diameterErrorMm, speedometerErrorPercent] of closeTires) {
+                const [width, aspectRatioAndWheel] = size.split('/');
+                const [aspectRatio, wheel] = aspectRatioAndWheel.split('R');
+                const tireLink = generateTireLink(width, aspectRatio, wheel);
+                resultHtml += `<tr><td><a href="${tireLink}" target="_blank">${size}</a></td><td>${diameter.toFixed(2)}</td><td>${diameterErrorMm.toFixed(2)}</td><td>${speedometerErrorPercent.toFixed(2)}</td></tr>`;
+            }
+
+            resultHtml += `</table>`;
+            document.getElementById('result').innerHTML = resultHtml;
+        }
+    </script>
+</body>
+</html>
