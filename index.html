@@ -68,13 +68,13 @@
                     for (let aspectRatio = aspectRatioStart; aspectRatio <= aspectRatioEnd; aspectRatio += aspectRatioStep) {
                         const diameter = tireDiameter(width, aspectRatio, wheel);
                         const diameterErrorMm = diameter - targetDiameter;
-                        const speedometerErrorPercent = (diameter / targetDiameter - 1) * 100;
+                        const speedometerErrorPercent = -(diameter / targetDiameter - 1) * 100;
                         closeSizes.push([`${width}/${aspectRatio}R${wheel}`, diameter, diameterErrorMm, speedometerErrorPercent]);
                     }
                 }
             }
 
-            closeSizes.sort((a, b) => Math.abs(a) - Math.abs(b));
+            closeSizes.sort((a, b) => Math.abs(a[3]) - Math.abs(b[3]));
             return closeSizes;
         }
 
